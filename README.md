@@ -14,6 +14,7 @@ Skill：放在 `skills/` 下，Claude Code 加载后按需求自动触发。
 |---|---|---|
 | [**explain-video**](skills/explain-video) | 把一个概念做成**带旁白的讲解视频**：讨论 → 讲解框架 → HTML 幻灯 → 口播稿 → TTS 人声 → 字幕 → BGM → 录屏 → 合成 | 《从 0 手搓一条口播视频流水线》 |
 | [**wechat-publish-template**](skills/wechat-publish-template) | 把 Markdown 转成可直接粘贴进公众号编辑器的 HTML（橙黑赛博朋克风） | [创建真正可用的 Skill 完整教程](https://x.com/MinLiBuilds/status/2055980925452968351?s=20) |
+| [**handwriting-stand-up**](skills/handwriting-stand-up) | 把**手写字录屏 / 照片**做成单文件 HTML 续集：字从纸上**立起来**成 3D，前面上演一段中世纪小人的故事，最后倒回纸上 | — |
 
 工具：放在 `tools/` 下，是独立的命令行程序，Claude Code 不会加载它们，按各自 README 手动安装。
 
@@ -34,7 +35,7 @@ mkdir -p .claude/skills
 cp -r /tmp/min-skill/skills/explain-video .claude/skills/explain-video
 ```
 
-换成 `wechat-publish-template` 同理。重启 Claude Code 生效。
+换成 `wechat-publish-template`、`handwriting-stand-up` 同理。重启 Claude Code 生效。
 
 ### 全部 skill 一起装
 
@@ -49,7 +50,7 @@ git clone https://github.com/limin112/min-skill.git .claude/skills/minli-skill
 
 ```bash
 claude plugin details minli-skill
-#   Skills (2)  explain-video, wechat-publish-template
+#   Skills (3)  explain-video, handwriting-stand-up, wechat-publish-template
 ```
 
 > **Windows cmd.exe 用户**：第 1 步改成 `cd /d %USERPROFILE%`，第 2 步原样跑就行（路径分隔符用 `/` 现代 git 也接受）。
@@ -86,6 +87,7 @@ Skill 不用记命令，直接说需求，Claude 识别到就会触发：
 
 - “帮我做一条讲解视频，主题是 XXX” → `explain-video`
 - “把 `draft.md` 转成公众号” → `wechat-publish-template`
+- “把这个视频里的手写字立起来，讲个故事” → `handwriting-stand-up`
 
 工具装完按它 README 里说的用，和 Claude Code 无关。
 
@@ -98,6 +100,7 @@ min-skill/
 ├── .claude-plugin/plugin.json      ← 让整个文件夹作为一个 skill 合集被加载
 ├── skills/                         ← Claude Code 加载的 skill
 │   ├── explain-video/              ← SKILL.md + scripts/ + references/
+│   ├── handwriting-stand-up/       ← SKILL.md + engine/ + scripts/ + references/ + examples/
 │   └── wechat-publish-template/    ← SKILL.md + assets/ + references/ + evals/
 └── tools/                          ← 独立工具，不是 skill，手动安装
     └── uu-term-bridge/             ← install.sh + bin/ + test/

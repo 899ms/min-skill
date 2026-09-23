@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f2f2f4">
+<title>Stand Up</title>
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div id="app">
+  <div id="sky"></div>
+  <div id="viewport">
+    <div id="camera">
+      <div id="floor"></div>
+      <div id="page"><img id="plate" src="assets/plate.jpg" alt=""></div>
+    </div>
+  </div>
+
+  <div id="phone">
+    <div class="rim"></div>
+    <div class="screen"><img class="poster" src="assets/poster.jpg" alt=""><video id="vid" muted playsinline webkit-playsinline preload="auto"></video></div>
+    <div class="bezel"></div>
+    <div class="island"></div>
+    <div class="btn b1"></div><div class="btn b2"></div><div class="btn b3"></div><div class="btn b4"></div>
+  </div>
+
+  <div id="vignette"></div>
+  <div id="spot"></div>
+  <div id="spotbeam"></div>
+  <div id="glow5"></div>
+  <div id="scrim"></div>
+
+  <div id="title"><div class="t1"></div><div class="t2"></div></div>
+  <div id="captions"></div>
+  <div id="rcback"></div>
+  <div id="roundcard"></div>
+
+  <div id="endcard"><div class="fin"></div><button id="replay2" type="button"></button></div>
+
+  <div id="intro">
+    <div class="inner">
+      <div class="play"><svg viewBox="0 0 24 24"><path d="M6 3.8v16.4c0 .8.9 1.3 1.6.9l13-8.2c.6-.4.6-1.3 0-1.7l-13-8.2C6.9 2.5 6 3 6 3.8z" fill="#1d1d1f"/></svg></div>
+      <div class="k1"></div>
+      <div class="k2"></div>
+      <div class="k3"></div>
+    </div>
+  </div>
+
+  <div id="hud">
+    <button id="bPause" type="button" aria-label="暂停"><svg viewBox="0 0 16 16"><path id="pauseIcon" d="M4 2.5h2.6v11H4zM9.4 2.5H12v11H9.4z" fill="currentColor"/></svg></button>
+    <button id="bSound" type="button" aria-label="声音"><svg viewBox="0 0 16 16"><path d="M2 6h2.6L8 3v10L4.6 10H2z" fill="currentColor"/><path id="soundWaves" d="M10.4 5.4a3.4 3.4 0 010 5.2M12.3 3.6a6 6 0 010 8.8" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg></button>
+    <button id="bReplay" type="button" aria-label="重播"><svg viewBox="0 0 16 16"><path d="M3.2 8a4.8 4.8 0 108.1-3.5" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/><path d="M12.6 1.8v3.6H9" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+  </div>
+  <div id="progress"></div>
+</div>
+
+<svg id="defs" width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="inkFace" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3b3b3e"/><stop offset=".35" stop-color="#1c1c1e"/><stop offset="1" stop-color="#0a0a0b"/>
+    </linearGradient>
+    <linearGradient id="goldFace" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f6e2a4"/><stop offset=".45" stop-color="#d4a94e"/><stop offset=".7" stop-color="#a47a2a"/><stop offset="1" stop-color="#e9c878"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f1d98f"/><stop offset=".5" stop-color="#c99a3e"/><stop offset="1" stop-color="#9a7027"/>
+    </linearGradient>
+    <radialGradient id="spark"><stop offset="0" stop-color="#fffbe8"/><stop offset=".35" stop-color="#ffd978"/><stop offset="1" stop-color="#e0a93a" stop-opacity="0"/></radialGradient>
+  </defs>
+</svg>
+
+<script src="assets/gsap.min.js"></script>
+<script src="assets/source.js"></script>
+<script src="assets/story.js"></script>
+<script src="assets/engine.js"></script>
+</body>
+</html>
