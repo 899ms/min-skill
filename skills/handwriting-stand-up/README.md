@@ -31,7 +31,11 @@ open ~/stand-up/demo/trace_check.png                                # 检查切�
 (cd $H/scripts && npm i playwright-core)                            # 截图工具的依赖，装一次
 node $H/scripts/shot.js ~/stand-up/demo --times 6,24,37.4,62.5,66,90
 python3 $H/scripts/build.py ~/stand-up/demo                         # → dist/demo.html
+node $H/scripts/record.js ~/stand-up/demo --out demo_16x9.mp4       # 可选：导出 1920×1080 视频（带音轨）
+node $H/scripts/record.js ~/stand-up/demo --size 540x960 --dpr 2 --out demo_9x16.mp4   # 竖屏 1080×1920
 ```
+
+导出视频是**逐帧渲染**的（时间线可以精确跳到任意一帧），不会掉帧；合成的音效和配乐用离线方式渲染成音轨一起合进去。
 
 ## 切块不对怎么办
 

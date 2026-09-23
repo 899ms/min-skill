@@ -23,11 +23,10 @@ function loadPW() {
 }
 
 async function launch(chromium) {
-  const args = ['--autoplay-policy=no-user-gesture-required'];
+  const args = ['--autoplay-policy=no-user-gesture-required', '--enable-gpu-rasterization', '--ignore-gpu-blocklist'].concat(process.platform === 'darwin' ? ['--use-angle=metal'] : []);
   const tries = [];
   if (process.env.CHROME_PATH) tries.push({ executablePath: process.env.CHROME_PATH });
   tries.push({});
-  tries.push({ channel: 'chrome' });
   const cache = path.join(process.env.HOME || '', 'Library/Caches/ms-playwright');
   if (fs.existsSync(cache)) {
     for (const d of fs.readdirSync(cache).filter((d) => d.startsWith('chromium-')).sort().reverse()) {
@@ -36,6 +35,7 @@ async function launch(chromium) {
       for (const p of [mac, mac2]) if (fs.existsSync(p)) tries.push({ executablePath: p });
     }
   }
+  tries.push({ channel: 'chrome' });
   let err;
   for (const t of tries) {
     try { return await chromium.launch(Object.assign({ args }, t)); } catch (e) { err = e; }

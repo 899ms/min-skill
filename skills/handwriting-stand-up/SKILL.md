@@ -20,8 +20,9 @@ Everything runs on one paused GSAP timeline, so any moment can be screenshotted 
 is what makes iterating cheap: change a number, re-shoot three frames, look.
 
 ```
-input.mp4 / .jpg ──prepare.py──▶ project/                     ──shot.js──▶ shots/*.png (check)
-                                  index.html                   ──build.py─▶ dist/<name>.html
+input.mp4 / .jpg ──prepare.py──▶ project/                     ──shot.js───▶ shots/*.png (check)
+                                  index.html                   ──build.py──▶ dist/<name>.html
+                                                               ──record.js─▶ dist/<name>.mp4 (optional)
                                   assets/source.js   ← traced glyphs, pivots, page size, video
                                   assets/story.js    ← you write this
                                   assets/engine.js   ← stage, camera, characters, audio
@@ -107,6 +108,19 @@ Fetches Noto Serif SC / Cormorant Garamond / UnifrakturMaguntia from Google Font
 characters the story uses** and inlines everything. Offline → `--no-fonts` (system fonts).
 The file opens from disk, in WeChat, or on any static host.
 
+## Step 5 (optional) — Export an MP4
+
+```bash
+node $H/scripts/record.js <project-dir> --out film_16x9.mp4                            # 1920×1080
+node $H/scripts/record.js <project-dir> --size 540x960 --dpr 2 --out film_9x16.mp4      # 1080×1920, for phones
+```
+
+Renders frame by frame by seeking (recording first, then the story; no dropped frames), renders the
+synthesized soundtrack offline with the same timeline calls, and muxes both. `--from/--to` for a
+slice. ~0.1 s per 1080p frame (~5 min for the 100 s film) on Apple silicon with Chrome for Testing
+and GPU flags; run sizes one after another — two at once starve each other. Layout follows the
+viewport, so pick the CSS size the audience will see (`540x960 --dpr 2` looks like a phone).
+
 ## Things that will bite you
 
 **Every animation must live on `S.tl`.** A bare `gsap.to()` or `setTimeout` breaks seeking,
@@ -153,7 +167,7 @@ Developed on macOS (Apple Silicon); nothing is macOS-specific.
 
 - `engine/` — `index.html`, `style.css`, `engine.js`, `gsap.min.js`, `story.template.js`.
   `prepare.py` copies these into each project.
-- `scripts/prepare.py` · `scripts/shot.js` · `scripts/build.py`
+- `scripts/prepare.py` · `scripts/shot.js` · `scripts/build.py` · `scripts/record.js`
 - `references/story-api.md` — the `S` toolkit, coordinates, figure options, sound list.
 - `examples/opus5/` — the original: `input.mp4`, `story.js`, built `opus5.html`, `preview.jpg`.
   Rebuild: `prepare.py examples/opus5/input.mp4 --out /tmp/opus5 && cp examples/opus5/story.js /tmp/opus5/assets/ && build.py /tmp/opus5`.

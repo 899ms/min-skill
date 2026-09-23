@@ -154,3 +154,6 @@ html, body {
   font: 600 14px var(--sans); letter-spacing: .04em; color: #fff; background: #1d1d1f; border: 0; border-radius: 999px; padding: 11px 22px; cursor: pointer;
   box-shadow: 0 8px 24px rgba(0,0,0,.18);
 }
+
+/* scripts/record.js: no controls in the exported video */
+.recording #hud, .recording #progress, .recording #replay2 { display: none !important; }

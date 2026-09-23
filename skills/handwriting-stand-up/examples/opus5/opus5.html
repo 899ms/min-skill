@@ -168,6 +168,9 @@ html, body {
   font: 600 14px var(--sans); letter-spacing: .04em; color: #fff; background: #1d1d1f; border: 0; border-radius: 999px; padding: 11px 22px; cursor: pointer;
   box-shadow: 0 8px 24px rgba(0,0,0,.18);
 }
+
+/* scripts/record.js: no controls in the exported video */
+.recording #hud, .recording #progress, .recording #replay2 { display: none !important; }
 </style>
 </head>
 <body>
@@ -1227,13 +1230,17 @@ window.STORY = (() => {
   /* Audio (all synthesized, no files)                                   */
   /* ------------------------------------------------------------------ */
   const Sound = (() => {
-    let ctx = null, out, sfxBus, music, noiseBuf, enabled = true, sched = null, musicOn = false, drum = false, step = 0, nextT = 0, stopToken = 0;
+    let ctx = null, out, sfxBus, music, noiseBuf, enabled = true, sched = null, musicOn = false, drum = false, step = 0, nextT = 0, stopAt = Infinity;
+    let sim = null;          // offline rendering: { t } replaces the audio clock
     const cache = {};
     function init() {
       if (ctx) { if (ctx.state === 'suspended') ctx.resume(); return; }
       const AC = window.AudioContext || window.webkitAudioContext;
       if (!AC) return;
       ctx = new AC();
+      buildGraph();
+    }
+    function buildGraph() {
       const comp = ctx.createDynamicsCompressor();
       comp.threshold.value = -16; comp.ratio.value = 3.5; comp.attack.value = 0.004; comp.release.value = 0.2;
       out = ctx.createGain(); out.gain.value = enabled ? 0.9 : 0;
@@ -1250,7 +1257,7 @@ window.STORY = (() => {
       const wet = ctx.createGain(); wet.gain.value = 0.2;
       sfxBus.connect(conv); music.connect(conv); conv.connect(wet); wet.connect(out);
     }
-    const now = () => ctx.currentTime;
+    const now = () => (sim ? sim.t : ctx.currentTime);
     function env(g, t, a, peak, dec) {
       g.gain.setValueAtTime(0.0001, t);
       g.gain.exponentialRampToValueAtTime(peak, t + a);
@@ -1334,8 +1341,9 @@ window.STORY = (() => {
     const melAt = {}; { let p = 0; MEL.forEach(([m, l]) => { if (m) melAt[p] = m; p += l; }); }
     const EIGHTH = 0.3;
     function tick() {
-      if (!ctx) return;
-      while (nextT < ctx.currentTime + 0.35) {
+      if (!ctx || !sched) return;
+      if (!musicOn && now() > stopAt) { if (!sim) clearInterval(sched); sched = null; return; }
+      while (nextT < now() + 0.35) {
         const s = step % 48, bar = Math.floor(s / 6), sb = s % 6;
         if (melAt[s]) pluck(melAt[s], nextT, 0.34);
         const [r, f5] = BASS[bar];
@@ -1351,23 +1359,40 @@ window.STORY = (() => {
     }
     function musicStart(level = 0.55) {
       if (!ctx) return;
-      stopToken++;
-      if (!sched) { step = 0; nextT = ctx.currentTime + 0.08; sched = setInterval(tick, 40); }
+      stopAt = Infinity;
+      if (!sched) { step = 0; nextT = now() + 0.08; sched = sim ? 'sim' : setInterval(tick, 40); }
       musicOn = true;
-      music.gain.cancelScheduledValues(ctx.currentTime);
-      music.gain.setTargetAtTime(level, ctx.currentTime, 0.6);
+      music.gain.cancelScheduledValues(now());
+      music.gain.setTargetAtTime(level, now(), 0.6);
     }
-    function musicLevel(level, tc = 0.5) { if (ctx) { music.gain.cancelScheduledValues(ctx.currentTime); music.gain.setTargetAtTime(level, ctx.currentTime, tc); } }
+    function musicLevel(level, tc = 0.5) { if (ctx) { music.gain.cancelScheduledValues(now()); music.gain.setTargetAtTime(level, now(), tc); } }
     function musicStop(tc = 0.8) {
       if (!ctx) return;
       musicOn = false;
-      music.gain.cancelScheduledValues(ctx.currentTime);
-      music.gain.setTargetAtTime(0, ctx.currentTime, tc);
-      const my = ++stopToken;
-      setTimeout(() => { if (my === stopToken && !musicOn && sched) { clearInterval(sched); sched = null; } }, tc * 5000);
+      music.gain.cancelScheduledValues(now());
+      music.gain.setTargetAtTime(0, now(), tc);
+      stopAt = now() + tc * 5;
+    }
+    // Render the whole soundtrack into an AudioBuffer. `drive(sim, tick)` moves sim.t forward and
+    // fires the timeline's calls; everything they schedule lands on the offline context instead.
+    async function renderOffline(total, drive, sr = 44100) {
+      const saved = { ctx, out, sfxBus, music, noiseBuf, sched, musicOn, drum, step, nextT, stopAt, enabled };
+      if (typeof sched === 'number') clearInterval(sched);
+      for (const k in cache) delete cache[k];
+      ctx = new OfflineAudioContext(2, Math.ceil(sr * total), sr);
+      enabled = true; sched = null; musicOn = false; drum = false; stopAt = Infinity;
+      buildGraph();
+      sim = { t: 0 };
+      try { drive(sim, tick); return await ctx.startRendering(); }
+      finally {
+        sim = null;
+        for (const k in cache) delete cache[k];
+        ({ ctx, out, sfxBus, music, noiseBuf, sched, musicOn, drum, step, nextT, stopAt, enabled } = saved);
+        if (typeof saved.sched === 'number') sched = setInterval(tick, 40);
+      }
     }
     return {
-      init, play, musicStart, musicStop, musicLevel,
+      init, play, musicStart, musicStop, musicLevel, renderOffline,
       setDrum(v) { drum = v; },
       setEnabled(v) { enabled = v; if (ctx) out.gain.setTargetAtTime(v ? 0.9 : 0, ctx.currentTime, 0.05); },
       get enabled() { return enabled; },
@@ -1710,7 +1735,57 @@ window.STORY = (() => {
   };
   window.__tl = tl;
   window.__duration = TL_DUR;
+  window.__vidDur = VID_DUR;
   window.__word = WORD;
+
+  // film clock for scripts/record.js: 0 … VID_DUR is the recording, then the story timeline
+  window.__frame = async (t) => {
+    document.body.classList.add('recording');
+    started = true;
+    intro.style.visibility = 'hidden';
+    $('.poster', phone).style.display = 'none';
+    if (SRC.video && t < VID_DUR) {
+      phase = 'video';
+      tl.pause(); tl.seek(0, true);
+      if (!vid.paused) vid.pause();
+      const target = Math.min(t, (vid.duration || VID_DUR) - 0.001);
+      if (Math.abs(vid.currentTime - target) > 0.0005) {
+        await new Promise((res) => { vid.addEventListener('seeked', res, { once: true }); vid.currentTime = target; });
+      }
+      render();
+    } else window.__seek(t - VID_DUR);
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+  };
+
+  // the whole soundtrack, rendered offline → base64 16-bit stereo WAV
+  window.__renderAudio = async (tail = 2) => {
+    const total = VID_DUR + TL_DUR + tail;
+    const was = tl.time();
+    const buf = await Sound.renderOffline(total, (sim, tick) => {
+      let seed = 7;
+      const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+      const [w0, w1] = (SRC.video && SRC.video.write) || [0, 0];
+      for (let t = w0; t < w1; t += 0.18) if (rnd() < 0.6) { sim.t = t; Sound.play('scribble', 0.25); }
+      tl.pause(); tl.seek(0, true);
+      for (let t = 0; t <= TL_DUR + 1e-6; t += 0.01) { sim.t = VID_DUR + t; tl.seek(t, false); tick(); }
+      for (let t = TL_DUR; t < TL_DUR + tail; t += 0.05) { sim.t = VID_DUR + t; tick(); }
+      tl.seek(was, true);
+    });
+    const n = buf.length, L = buf.getChannelData(0), R = buf.getChannelData(1);
+    const bytes = new Uint8Array(44 + n * 4), dv = new DataView(bytes.buffer);
+    const str = (o, s) => { for (let i = 0; i < s.length; i++) bytes[o + i] = s.charCodeAt(i); };
+    str(0, 'RIFF'); dv.setUint32(4, 36 + n * 4, true); str(8, 'WAVEfmt '); dv.setUint32(16, 16, true);
+    dv.setUint16(20, 1, true); dv.setUint16(22, 2, true); dv.setUint32(24, buf.sampleRate, true);
+    dv.setUint32(28, buf.sampleRate * 4, true); dv.setUint16(32, 4, true); dv.setUint16(34, 16, true);
+    str(36, 'data'); dv.setUint32(40, n * 4, true);
+    for (let i = 0; i < n; i++) {
+      dv.setInt16(44 + i * 4, Math.max(-1, Math.min(1, L[i])) * 32767, true);
+      dv.setInt16(46 + i * 4, Math.max(-1, Math.min(1, R[i])) * 32767, true);
+    }
+    let bin = '';
+    for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    return btoa(bin);
+  };
 })();
 
 </script>
